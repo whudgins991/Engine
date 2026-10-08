@@ -74,6 +74,18 @@
     <Image Include="Sprites\DEBUG_9.png">
       <Filter>Resource Files</Filter>
     </Image>
+    <Image Include="Sprites\tree_base_sprite.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="Sprites\tree_top_sprite.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="Sprites\empty_sprite.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="Sprites\water_sprite.png">
+      <Filter>Resource Files</Filter>
+    </Image>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Tile.hpp">

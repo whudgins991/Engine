@@ -21,11 +21,11 @@ void Menu::set_position(sf::Vector2f new_position)
 	sf::Text longest_string(font);
 	longest_string.setString("");
 	//sf::Vector2f offset = background.getPosition() - new_position;
-	longest_string.setCharacterSize(90);
+	longest_string.setCharacterSize(menu_text[0].getCharacterSize());
 	menu_text[menu_selection].setOutlineThickness(0);
 	for (int x = 0; x < static_cast<int>(menu_text.size()); x++)
 	{
-		menu_text[x].setCharacterSize(90);
+		//menu_text[x].setCharacterSize(90);
 
 		if (menu_text[x].getString().getSize() > longest_string.getString().getSize())
 		{
@@ -34,12 +34,12 @@ void Menu::set_position(sf::Vector2f new_position)
 		//menu_text[x].setPosition(menu_text[x].getPosition() + offset);
 		//std::cout << "DEBUG: Setting menu_text[" << x << "] position to: " << menu_text[x].getPosition().x << ", " << menu_text[x].getPosition().y << "'\n";
 	}
-	background.setSize({ static_cast<float>(longest_string.getGlobalBounds().size.x / 4), static_cast<float>(longest_string.getGlobalBounds().size.y * menu_text.size()) * 0.4f });
-	background.setPosition({ new_position.x - background.getGlobalBounds().size.x / 2, new_position.y - background.getGlobalBounds().size.y / 2 });
+	background.setSize({ static_cast<float>(longest_string.getLocalBounds().size.x), static_cast<float>(longest_string.getLocalBounds().size.y * 2.0f * menu_text.size()) });
+	background.setPosition({ new_position.x - background.getLocalBounds().size.x / 2, new_position.y - background.getLocalBounds().size.y / 2 });
 
 	for (int x = 0; x < static_cast<int>(menu_text.size()); x++)
 	{
-		menu_text[x].setPosition({background.getPosition().x - (menu_text[x].getGlobalBounds().size.x / 2) + background.getGlobalBounds().size.x / 2, (background.getPosition().y + menu_text[x].getGlobalBounds().size.y * 2.0f * x )});
+		menu_text[x].setPosition({background.getPosition().x - (menu_text[x].getLocalBounds().size.x / 2) + background.getLocalBounds().size.x / 2, (background.getPosition().y + longest_string.getLocalBounds().size.y * 2.0f * x)});
 	}
 	menu_text[menu_selection].setOutlineThickness(10);
 
@@ -54,10 +54,14 @@ void Menu::set_fill_color(sf::Color new_color)
 }
 void Menu::set_scale(sf::Vector2f new_scale)
 {
-	background.setScale({ new_scale.x / 10, new_scale.y / 10 });
+	//background.setScale({ new_scale.x / 10, new_scale.y / 10 });
+	//for (int x = 0; x < static_cast<int>(menu_text.size()); x++)
+	//{
+	//	menu_text[x].setScale({ new_scale.x / 50, new_scale.y / 50 });
+	//}
 	for (int x = 0; x < static_cast<int>(menu_text.size()); x++)
 	{
-		menu_text[x].setScale({ new_scale.x / 50, new_scale.y / 50 });
+		menu_text[x].setCharacterSize(new_scale.x);
 	}
 }
 void Menu::set_outline_color(sf::Color new_color)
@@ -72,6 +76,7 @@ void Menu::set_menu_text(std::vector<std::string> new_menu_text)
 	//int longest_string_index = 0;
 	//sf::Text longest_string(font);
 	//longest_string.setString("");
+	menu_selection = 0;
 	for (int x = 0; x < static_cast<int>(new_menu_text.size()); x++)
 	{
 		menu_text.push_back(sf::Text(font));
@@ -88,6 +93,11 @@ void Menu::set_menu_text(std::vector<std::string> new_menu_text)
 	//background.setSize({ longest_string.getGlobalBounds().size.x, longest_string.getGlobalBounds().size.y * static_cast<float>(menu_text.size())});
 	//background.setSize({ 10, 10 });
 
+}
+void Menu::clear_menu_text() 
+{
+	menu_text[menu_selection].setOutlineThickness(0);
+	menu_text.clear();
 }
 
 int Menu::get_menu_index()
@@ -122,32 +132,76 @@ int Menu::select()
 {
 	switch (menu_index)
 	{
+		//Pause Menu
 	case 1:
 		switch (menu_selection)
 		{
+			//Resume
 		case 0:
 			return 0; break;
+			//Options
 		case 1:
 			return 2; break;
+			//Exit Game
 		case 2:
 			return -1; break;
+		case 3:
+			return -99; break;
+			//Default to Resume
 		default:
 			return 0; break;
 		}
 		break;
+		//Options Menu
 	case 2:
 		switch (menu_selection)
 		{
+			//Toggle Fullscreen
 		case 0:
 			return -2; break;
+			//Keybinds
 		case 1:
 			return 3; break;
+			//Return
 		case 2:
 			return 1; break;
+			//Default to Return
+		default:
+			return 1; break;
+		}
+		break;
+	case 3:
+		switch (menu_selection)
+		{
+		case 0:
+			return 91; break;
+		case 1:
+			return 92; break;
+		case 2: 
+			return 93; break;
+		case 3:
+			return 94; break;
+		case 4:
+			return 95; break;
+		case 5:
+			return 96; break;
+		case 6:
+			return 97; break;
+		case 7:
+			return 98; break;
+		case 8:
+			return 99; break;
+		case 9:
+			return 90; break;
+		case 10:
+			return -3; break;
+			//Return
+		case 11:
+			return 2; break;
+			//Default to Return
 		default:
 			return 2; break;
 		}
-		break;
 	default:
 		return -1;
 		break;
@@ -159,6 +213,7 @@ void Menu::menu_change()
 	menu_selection = 0;
 	menu_text[menu_selection].setOutlineThickness(10);
 }
+
 void Menu::draw(sf::RenderWindow& window)
 {
 	window.draw(background);

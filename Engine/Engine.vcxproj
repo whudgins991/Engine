@@ -168,10 +168,14 @@
     <Image Include="Sprites\DEBUG_8.png" />
     <Image Include="Sprites\DEBUG_9.png" />
     <Image Include="Sprites\dirt_sprite.png" />
+    <Image Include="Sprites\empty_sprite.png" />
     <Image Include="Sprites\grass_sprite.png" />
     <Image Include="Sprites\player_sprite.png" />
     <Image Include="Sprites\stone_sprite.png" />
     <Image Include="Sprites\test_tile.png" />
+    <Image Include="Sprites\tree_base_sprite.png" />
+    <Image Include="Sprites\tree_top_sprite.png" />
+    <Image Include="Sprites\water_sprite.png" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="main.hpp" />

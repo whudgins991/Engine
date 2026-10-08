@@ -18,6 +18,7 @@ public:
 	void set_scale(sf::Vector2f new_scale);
 	void set_outline_color(sf::Color new_color);
 	void set_menu_text(std::vector<std::string> new_menu_text);
+	void clear_menu_text();
 	int get_menu_index();
 	sf::Vector2f get_size();
 	void move_up();
