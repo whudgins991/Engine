@@ -10,13 +10,12 @@ class Tile
 
 public:
 	Tile();
-	void debug_randomize_tile();
+	void is_occupied(bool occupied);
 	bool get_passable();
 	int get_tile_type();
 	int get_health();
-	void set_passable(bool new_is_passible);
+	void set_passable();
 	void set_tile_type(int new_tile_type);
 	void set_health(int new_health);
-	~Tile();
 
 };

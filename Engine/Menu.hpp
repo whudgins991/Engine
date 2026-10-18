@@ -26,6 +26,5 @@ public:
 	int select();
 	void menu_change();
 	void draw(sf::RenderWindow& window);
-	~Menu();
 
 };

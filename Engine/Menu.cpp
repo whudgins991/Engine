@@ -222,7 +222,4 @@ void Menu::draw(sf::RenderWindow& window)
 		window.draw(menu_text[x]);
 	}
 }
-Menu::~Menu()
-{
 
-}

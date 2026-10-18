@@ -95,7 +95,3 @@ void Player::set_grid_position(sf::Vector2i new_grid_position)
 	grid_position = new_grid_position;
 }
 
-Player::~Player() 
-{
-
-}

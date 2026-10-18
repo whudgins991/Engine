@@ -2,6 +2,7 @@
 #include "Tile.hpp"
 #include "Player.hpp"
 #include "Menu.hpp"
+#include "Entity.hpp"
 
 
 //The window
@@ -25,6 +26,8 @@ float empty_space;
 //This is the currently loaded grid
 Tile tile_grid[number_of_cells][number_of_cells][tiles_per_grid / 3][tiles_per_grid / 3];
 Tile temp_grid[number_of_cells][number_of_cells][tiles_per_grid / 3][tiles_per_grid / 3];
+//Vector for the enemies
+std::vector<Entity> enemy_vector;
 //Textures
 sf::Texture test_tile_texture("sprites/test_tile.png");
 sf::Texture grass_texture("Sprites/grass_sprite.png");
@@ -44,6 +47,7 @@ sf::Texture nine_texture("Sprites/DEBUG_9.png");
 sf::Texture tree_base_texture("Sprites/tree_base_sprite.png");
 sf::Texture tree_top_texture("Sprites/tree_top_sprite.png");
 sf::Texture empty_texture("Sprites/empty_sprite.png");
+sf::Texture enemy_crab_texture("Sprites/enemy_crab_sprite.png");
 //Used to denote which screen is cell is rendered at any given time and handle movement logic
 sf::Vector2i projected_coordinates = { 0, 0 };
 sf::Vector2i projected_cell = { 0, 0 };
@@ -93,6 +97,7 @@ bool peek_next_grid(sf::Vector2i attempted_world_coordinates, sf::Vector2i attem
 void move_player(sf::Keyboard::Key changable_key_pressed, sf::Keyboard::Key fixed_key_pressed, sf::Vector2i attempted_movement);
 //Function to set new keybinds
 void set_keybind(sf::Keyboard::Scancode& changed_key);
+void spawn_enemies();
 
 int main()
 {
@@ -141,10 +146,11 @@ int main()
 		}
 	}
 
-	//Read the starting grif from a file
+	//Read the starting grid from a file
 	read_grid(current_world_coordinates, tile_grid);
 	//Set the sprite vectors to the tiles of the current cell
 	set_tile_textures();
+	spawn_enemies();
 
     //Run the program as long as the window is open
 	while (window.isOpen())
@@ -402,6 +408,13 @@ int main()
 			}
 		}
 
+		for (int x = 0; x < enemy_vector.size(); x++)
+		{
+			if (enemy_vector[x].get_cell_coordinates() == current_cell)
+			{
+				enemy_vector[x].draw(window);
+			}
+		}
 		//Draw the player
 		player.draw(window);
 		for (int x = 0; x < tiles_per_grid / 3; x++)
@@ -447,6 +460,10 @@ void realign()
 		menu_vector[x].set_scale(render_scale);
 		menu_vector[x].set_position({ static_cast<float>(window.getSize().x) / 2, static_cast<float>(window.getSize().y) / 2 });
 	}
+	for (int x = 0; x < enemy_vector.size(); x++)
+	{
+		enemy_vector[x].set_spacing(empty_space, (tiles_per_grid / 3), number_of_cells, render_scale);
+	}
 }
 void set_tile_textures()
 {
@@ -464,11 +481,11 @@ void set_tile_textures()
 			switch (tile_grid[current_cell.x][current_cell.y][x][y].get_tile_type())
 			{
 			//Note: texture_zero through texture_nine are debug textures that are not for use in the final product. test_tile_texture is the default texture set before any tiles are read and will only ever appear in error cases.
-			case 0: sprite_vector[x][y].setTexture(stone_texture); tile_grid[current_cell.x][current_cell.y][x][y].set_passable(false); break;
-			case 1: sprite_vector[x][y].setTexture(dirt_texture);tile_grid[current_cell.x][current_cell.y][x][y].set_passable(true); break;
-			case 2: sprite_vector[x][y].setTexture(grass_texture);tile_grid[current_cell.x][current_cell.y][x][y].set_passable(true); break;
-			case 3: sprite_vector[x][y].setTexture(tree_base_texture);tile_grid[current_cell.x][current_cell.y][x][y].set_passable(false); break;
-			case 4: sprite_vector[x][y].setTexture(water_texture);tile_grid[current_cell.x][current_cell.y][x][y].set_passable(true); break;
+			case 0: sprite_vector[x][y].setTexture(stone_texture);  break;
+			case 1: sprite_vector[x][y].setTexture(dirt_texture); break;
+			case 2: sprite_vector[x][y].setTexture(grass_texture); break;
+			case 3: sprite_vector[x][y].setTexture(tree_base_texture); break;
+			case 4: sprite_vector[x][y].setTexture(water_texture); break;
 			case 10: sprite_vector[x][y].setTexture(zero_texture); break;
 			case 11: sprite_vector[x][y].setTexture(one_texture); break;
 			case 12: sprite_vector[x][y].setTexture(two_texture); break;
@@ -481,6 +498,7 @@ void set_tile_textures()
 			case 19: sprite_vector[x][y].setTexture(nine_texture); break;
 			default: sprite_vector[x][y].setTexture(test_tile_texture); break;
 			}
+			tile_grid[current_cell.x][current_cell.y][x][y].set_passable();
 			//Drawing logic for the second layer of sprites. TODO: Turn into a switch statement as more multi-level sprites are added
 			if (tile_grid[current_cell.x][current_cell.y][x][y].get_tile_type() == 3 && y > 0)
 			{
@@ -683,6 +701,7 @@ void randomize_tiles(Tile (&array_reference)[number_of_cells][number_of_cells][t
 					growth_vector.push_back({ growth_coordinates_storage.x - 1, growth_coordinates_storage.y - 1 });
 					growth_points--;	
 				}
+				//In addition to lowering the growth points every time growth occurs, growth points are also reduced by a random amount every iteration to introuce variance in the size of lakes
 				growth_points -= random_growth_points_deduction(random_generator);
 			}
 			//Clear the growth_vector to ensure that it is empty for the next lake generation
@@ -1025,4 +1044,37 @@ void set_keybind(sf::Keyboard::Scancode &changed_key)
 	menu_vector[3].set_outline_color(sf::Color::Magenta);
 	menu_vector[3].set_position({ static_cast<float>(window.getSize().x) / 2, static_cast<float>(window.getSize().y) / 2 });
 
+}
+void spawn_enemies()
+{
+	std::uniform_int_distribution<> random_cells(0, number_of_cells - 1);
+	std::uniform_int_distribution<> random_tiles(0, (tiles_per_grid / 3) - 1);
+	std::uniform_int_distribution<> random_number_of_enemies(number_of_cells * number_of_cells, number_of_cells * number_of_cells * 5);
+	int rand_enemies = random_number_of_enemies(random_generator);
+	int rand_x;
+	int rand_y;
+	int rand_a;
+	int rand_b;
+	int failsafe_attempts = 10;
+
+	while (rand_enemies > 0 && failsafe_attempts > 0)
+	{
+		rand_x = random_cells(random_generator);
+		rand_y = random_cells(random_generator);
+		rand_a = random_tiles(random_generator);
+		rand_b = random_tiles(random_generator);
+		if (tile_grid[rand_x][rand_y][rand_a][rand_b].get_passable())
+		{
+			enemy_vector.emplace_back();
+			enemy_vector.back().set_grid_position(rand_x, rand_y, rand_a, rand_b);
+			enemy_vector.back().set_entity_type(1, &enemy_crab_texture);
+			enemy_vector.back().set_spacing(empty_space, tiles_per_grid / 3, number_of_cells, render_scale);
+			tile_grid[rand_x][rand_y][rand_a][rand_b].is_occupied(true);
+			rand_enemies--;
+		}
+		else
+		{
+			failsafe_attempts--;
+		}
+	}
 }
