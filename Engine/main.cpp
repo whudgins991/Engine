@@ -28,6 +28,7 @@ Tile tile_grid[number_of_cells][number_of_cells][tiles_per_grid / 3][tiles_per_g
 Tile temp_grid[number_of_cells][number_of_cells][tiles_per_grid / 3][tiles_per_grid / 3];
 //Vector for the enemies
 std::vector<Entity> enemy_vector;
+std::vector<Entity> temp_enemy_vector;
 //Textures
 sf::Texture test_tile_texture("sprites/test_tile.png");
 sf::Texture grass_texture("Sprites/grass_sprite.png");
@@ -63,7 +64,7 @@ std::vector<std::vector<sf::Sprite>> sprite_vector_layered;
 //Strings for use in the I/O reader and writer
 std::string io_file_data_read;
 std::string io_file_data_line;
-std::string io_tile_type_string;
+std::string io_temp_string;
 //Random number generator
 std::random_device random;
 std::mt19937 random_generator(random());
@@ -86,18 +87,19 @@ void realign();
 //Sets the tile trextures based on tile type
 void set_tile_textures();
 //World generation logic for new grids
-void randomize_tiles(Tile (&array_reference)[number_of_cells][number_of_cells][tiles_per_grid / 3][tiles_per_grid / 3]);
+void randomize_tiles(Tile (&array_reference)[number_of_cells][number_of_cells][tiles_per_grid / 3][tiles_per_grid / 3], std::vector<Entity>& enemy_vector_reference);
 //Function to read a grid from a file
-void read_grid(sf::Vector2i world_coordinates, Tile(&array_reference)[number_of_cells][number_of_cells][tiles_per_grid / 3][tiles_per_grid / 3]);
+void read_grid(sf::Vector2i world_coordinates, Tile(&array_reference)[number_of_cells][number_of_cells][tiles_per_grid / 3][tiles_per_grid / 3], std::vector<Entity>& enemy_vector_reference);
+void write_grid();
 //Function to generate and then write a new grid to a file
-void write_new_grid(sf::Vector2i world_coordinates, Tile(&array_reference)[number_of_cells][number_of_cells][tiles_per_grid / 3][tiles_per_grid / 3]);
+void write_new_grid(sf::Vector2i world_coordinates, Tile(&array_reference)[number_of_cells][number_of_cells][tiles_per_grid / 3][tiles_per_grid / 3], std::vector<Entity>& enemy_vector_reference);
 //A slight modification to the read_grid function - this peeks into a file for the sake fo collision logic
 bool peek_next_grid(sf::Vector2i attempted_world_coordinates, sf::Vector2i attempted_cell, sf::Vector2i attempted_grid_coordinates);
 //Player movement logic
 void move_player(sf::Keyboard::Key changable_key_pressed, sf::Keyboard::Key fixed_key_pressed, sf::Vector2i attempted_movement);
 //Function to set new keybinds
 void set_keybind(sf::Keyboard::Scancode& changed_key);
-void spawn_enemies();
+void spawn_enemies(std::vector<Entity>& enemy_vector_reference);
 
 int main()
 {
@@ -147,10 +149,10 @@ int main()
 	}
 
 	//Read the starting grid from a file
-	read_grid(current_world_coordinates, tile_grid);
+	read_grid(current_world_coordinates, tile_grid, enemy_vector);
 	//Set the sprite vectors to the tiles of the current cell
 	set_tile_textures();
-	spawn_enemies();
+	///////////////////////////////////////////////////////////spawn_enemies();
 
     //Run the program as long as the window is open
 	while (window.isOpen())
@@ -396,7 +398,7 @@ int main()
 		//If the current grid has changed, read it from a file and update the sprites accordingly
 		if (!(last_world_coordinates == current_world_coordinates))
 		{
-			read_grid(current_world_coordinates, tile_grid);
+			read_grid(current_world_coordinates, tile_grid, enemy_vector);
 			set_tile_textures();
 		}
 		//Draw all onscreen tile sprites
@@ -511,7 +513,7 @@ void set_tile_textures()
 	}
 
 }
-void randomize_tiles(Tile (&array_reference)[number_of_cells][number_of_cells][tiles_per_grid / 3][tiles_per_grid / 3])
+void randomize_tiles(Tile (&array_reference)[number_of_cells][number_of_cells][tiles_per_grid / 3][tiles_per_grid / 3], std::vector<Entity>& enemy_vector_reference)
 {
 	//Storage for randomly generated numbers. Note: this list will likely grow or shrink as I experiment with different methods of world generation
 	int rand_x;
@@ -767,20 +769,22 @@ void randomize_tiles(Tile (&array_reference)[number_of_cells][number_of_cells][t
 			}
 		}
 	}
+	spawn_enemies(enemy_vector_reference);
 }
 
 //This function takes in the world coordinates (grid) to be read and reads them into the array reference passed. This allows grids to be read without being rendered (for collision logic)
-void read_grid(sf::Vector2i world_coordinates, Tile(&array_reference)[number_of_cells][number_of_cells][tiles_per_grid / 3][tiles_per_grid / 3])
+void read_grid(sf::Vector2i world_coordinates, Tile(&array_reference)[number_of_cells][number_of_cells][tiles_per_grid / 3][tiles_per_grid / 3], std::vector<Entity>& enemy_vector_reference)
 {
 	io_file_data_read = "";
 	io_file_data_line = "";
-	io_tile_type_string = "";
+	io_temp_string = "";
 	std::vector<int> io_tile_type_vector;
 	//My file naming convention for my grid files is simply the world coordinates of the grid (separated by a comma) with the extension ".grid"
 	std::string file_name = "world/" + std::to_string(world_coordinates.x) + ',' + std::to_string(world_coordinates.y) + '.' + "grid";
 	std::ifstream io_file_stream( file_name , std::ios::in);
-	bool read_failure = false;
+	bool read_failure = false;				
 	//If the file as successfully opened...
+	enemy_vector_reference.clear();
 	if (io_file_stream.is_open())
 	{
 		//Create a string with the raw data
@@ -795,18 +799,18 @@ void read_grid(sf::Vector2i world_coordinates, Tile(&array_reference)[number_of_
 			//My current file format is a colon, followed by the numberic tile type, followed by a semicolon. This segment of code looks for the starting colon and reads in the string until it reaches the semicolon
 			if (io_file_data_read[x] == ':')
 			{
-				io_tile_type_string = "";
+				io_temp_string = "";
 				int y = 1;
-				while (io_file_data_read[x + y] != ';')
+				while ((x + y) < io_file_data_read.length() && io_file_data_read[x + y] != ';')
 				{
-					io_tile_type_string += io_file_data_read[x + y];
+					io_temp_string += io_file_data_read[x + y];
 					y++;
 				}
 				x = (x + y);
-				for (int s = 0; s < io_tile_type_string.size(); s++)
+				for (int s = 0; s < io_temp_string.size(); s++)
 				{
 					//If the numeric string is empty, or if any characters within it are not numbers, the grid file is considered corrupted and reading fails
-					if (io_tile_type_string.empty() || !std::all_of(io_tile_type_string.begin(), io_tile_type_string.end(), [](char c) {return std::isdigit(c);}))
+					if (io_temp_string.empty() || !std::all_of(io_temp_string.begin(), io_temp_string.end(), [](char c) {return std::isdigit(c);}))
 					{
 						read_failure = true;
 					}
@@ -814,8 +818,81 @@ void read_grid(sf::Vector2i world_coordinates, Tile(&array_reference)[number_of_
 				//If reading succeeded, convert the numeric string to an int and push it to the temporary vector
 				if (!read_failure)
 				{
-					io_tile_type_vector.push_back(std::stoi(io_tile_type_string));
+					io_tile_type_vector.push_back(std::stoi(io_temp_string));
 				}
+			}
+			if (io_file_data_read[x] == '&')
+			{
+				enemy_vector_reference.emplace_back();
+				io_temp_string = "";
+				int y = 1;
+				int index = 0;
+				int temp_x = 0;
+				int temp_y = 0;
+				int temp_a = 0;	
+				int temp_b = 0;
+				while ((x + y) < io_file_data_read.length() && io_file_data_read[x + y] != ';')
+				{
+					while ((x + y) < io_file_data_read.length() && io_file_data_read[x + y] != ',')
+					{
+						io_temp_string += io_file_data_read[x + y];
+						y++;
+					}
+					for (int s = 0; s < io_temp_string.size(); s++)
+					{
+						if (io_temp_string.empty() || !std::all_of(io_temp_string.begin(), io_temp_string.end(), [](char c) {return std::isdigit(c);}))
+						{
+							std::cout << "Debug: READ FAILURE: Enemy data string is empty or contains non-numeric characters: " << io_temp_string << "\n";
+							read_failure = true;
+						}
+					}
+					if (!read_failure && index == 0)
+					{
+						enemy_vector_reference.back().set_entity_type(std::stoi(io_temp_string), &enemy_crab_texture);
+					}
+					else if (!read_failure && index == 1)
+					{
+						temp_x = std::stoi(io_temp_string);
+					}
+					else if (!read_failure && index == 2)
+					{
+						temp_y = std::stoi(io_temp_string);
+					}
+					else if (!read_failure && index == 3)
+					{
+						temp_a = std::stoi(io_temp_string);
+					}
+					else if (!read_failure && index == 4)
+					{
+						temp_b = std::stoi(io_temp_string);
+					}
+					else if (index > 4)
+					{
+						read_failure = true;
+					}
+					y++;
+					index++;
+					io_temp_string = "";
+				}
+				
+
+				for (int s = 0; s < io_temp_string.size(); s++)
+				{
+					if (io_temp_string.empty() || !std::all_of(io_temp_string.begin(), io_temp_string.end(), [](char c) {return std::isdigit(c);}))
+					{
+						std::cout << "Debug: READ FAILURE: Enemy data string is empty or contains non-numeric characters\n";
+						read_failure = true;
+					}
+				}
+				if (!read_failure)
+				{
+					std::cout << "DEBUG: Setting enemy grid position to: " << temp_x << ", " << temp_y << ", " << temp_a << ", " << temp_b << "\n";
+					enemy_vector_reference.back().set_grid_position(temp_x, temp_y, temp_a, temp_b);
+					enemy_vector_reference.back().set_spacing(empty_space, (tiles_per_grid / 3), number_of_cells, render_scale);
+					tile_grid[temp_x][temp_y][temp_a][temp_b].is_occupied(true);
+				}
+
+				
 			}
 		}
 		//Transfar the contents of the temporary vector to the 4D array used for holding the tile data
@@ -852,22 +929,26 @@ void read_grid(sf::Vector2i world_coordinates, Tile(&array_reference)[number_of_
 		{
 			std::cout << "DEBUG: World file corrupted. Generating new world file.\n";
 			std::filesystem::remove(file_name);
-			write_new_grid(world_coordinates, array_reference);
+			write_new_grid(world_coordinates, array_reference, enemy_vector_reference);
 		}
 	}
 	//If the file could not be successfully opened, generate a new grid file
 	else
 	{
-		write_new_grid(world_coordinates, array_reference);
+		write_new_grid(world_coordinates, array_reference, enemy_vector_reference);
 	}
 }
+void write_grid()
+{
+
+}
 //This function also accepts an array reference. This is for cases where a new grid file must be generated, but you do not wish to display it yet
-void write_new_grid(sf::Vector2i world_coordinates, Tile(&array_reference)[number_of_cells][number_of_cells][tiles_per_grid / 3][tiles_per_grid / 3])
+void write_new_grid(sf::Vector2i world_coordinates, Tile(&array_reference)[number_of_cells][number_of_cells][tiles_per_grid / 3][tiles_per_grid / 3], std::vector<Entity>& enemy_vector_reference)
 {
 	//Create the new .grid file
 	std::ofstream io_writer("world/" + std::to_string(world_coordinates.x) + ',' + std::to_string(world_coordinates.y) + '.' + "grid");
 	//Generate a new grid and store it in the array reference
-	randomize_tiles(array_reference);
+	randomize_tiles(array_reference, enemy_vector_reference);
 
 	for (int x = 0; x < number_of_cells; x++)
 	{
@@ -878,18 +959,23 @@ void write_new_grid(sf::Vector2i world_coordinates, Tile(&array_reference)[numbe
 				for (int b = 0; b < tiles_per_grid / 3; b++)
 				{
 					//Create the string representing the tile type. TODO:: Add a more complex format to allow for tile health, movement penalties, etc
-					io_tile_type_string = ":" + std::to_string(array_reference[x][y][a][b].get_tile_type()) + ";";
-					io_writer << io_tile_type_string;
+					io_temp_string = ":" + std::to_string(array_reference[x][y][a][b].get_tile_type()) + ";";
+					io_writer << io_temp_string;
 				}
 			}
 		}
+	}
+	spawn_enemies(enemy_vector_reference);
+	for (int x = 0; x < enemy_vector_reference.size(); x++)
+	{
+		io_writer << "&" << std::to_string(enemy_vector_reference[x].get_entity_type()) << "," << std::to_string(enemy_vector_reference[x].get_cell_coordinates().x) << "," << std::to_string(enemy_vector_reference[x].get_cell_coordinates().y) << "," << std::to_string(enemy_vector_reference[x].get_grid_coordinates().x) << "," << std::to_string(enemy_vector_reference[x].get_grid_coordinates().y) << ",;";
 	}
 	io_writer.close();
 }
 //This returns a bool indicating if the player can move over their projected tile in the next grid. TODO: Rename to indicate this is related to passability?
 bool peek_next_grid(sf::Vector2i attempted_world_coordinates, sf::Vector2i attempted_cell, sf::Vector2i attempted_grid_coordinates)
 {
-	read_grid(attempted_world_coordinates, temp_grid);
+	read_grid(attempted_world_coordinates, temp_grid, temp_enemy_vector);
 	return (temp_grid[attempted_cell.x][attempted_cell.y][attempted_grid_coordinates.x][attempted_grid_coordinates.y].get_passable());
 }
 //Player movement logic, namely logic for moving from cell to cell and grid to grid
@@ -1045,7 +1131,7 @@ void set_keybind(sf::Keyboard::Scancode &changed_key)
 	menu_vector[3].set_position({ static_cast<float>(window.getSize().x) / 2, static_cast<float>(window.getSize().y) / 2 });
 
 }
-void spawn_enemies()
+void spawn_enemies(std::vector<Entity>& enemy_vector_reference)
 {
 	std::uniform_int_distribution<> random_cells(0, number_of_cells - 1);
 	std::uniform_int_distribution<> random_tiles(0, (tiles_per_grid / 3) - 1);
@@ -1056,6 +1142,7 @@ void spawn_enemies()
 	int rand_a;
 	int rand_b;
 	int failsafe_attempts = 10;
+	enemy_vector_reference.clear();
 
 	while (rand_enemies > 0 && failsafe_attempts > 0)
 	{
@@ -1065,10 +1152,10 @@ void spawn_enemies()
 		rand_b = random_tiles(random_generator);
 		if (tile_grid[rand_x][rand_y][rand_a][rand_b].get_passable())
 		{
-			enemy_vector.emplace_back();
-			enemy_vector.back().set_grid_position(rand_x, rand_y, rand_a, rand_b);
-			enemy_vector.back().set_entity_type(1, &enemy_crab_texture);
-			enemy_vector.back().set_spacing(empty_space, tiles_per_grid / 3, number_of_cells, render_scale);
+			enemy_vector_reference.emplace_back();
+			enemy_vector_reference.back().set_grid_position(rand_x, rand_y, rand_a, rand_b);
+			enemy_vector_reference.back().set_entity_type(1, &enemy_crab_texture);
+			enemy_vector_reference.back().set_spacing(empty_space, tiles_per_grid / 3, number_of_cells, render_scale);
 			tile_grid[rand_x][rand_y][rand_a][rand_b].is_occupied(true);
 			rand_enemies--;
 		}

@@ -19,6 +19,7 @@ class Entity {
 	int entity_type;
 public:
 	Entity();
+	int get_entity_type();
 	void set_spacing(float new_empty_space, int new_tiles_per_cell, int new_number_of_cells, sf::Vector2f new_render_scale);
 	void set_entity_type(int new_entity_type, const sf::Texture* new_texture);
 	void draw(sf::RenderWindow& window);

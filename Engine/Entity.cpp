@@ -11,6 +11,10 @@ Entity::Entity()
 	entity_type = 0;
 	texture = nullptr;
 }
+int Entity::get_entity_type()
+{
+	return entity_type;
+}
 void Entity::set_spacing(float new_empty_space, int new_tiles_per_cell, int new_number_of_cells, sf::Vector2f new_render_scale)
 {
 	empty_space = new_empty_space;
@@ -28,26 +32,6 @@ void Entity::set_entity_type(int new_entity_type, const sf::Texture* new_texture
 {
 	entity_type = new_entity_type;
 	texture = new_texture;
-	//bool failed_to_load = false;
-	//switch (entity_type)
-	//{
-	//case 0:
-	//	if (!texture.loadFromFile("Sprites/test_tile.png"))
-	//	{
-	//		failed_to_load = true;
-	//	}
-	//	break;
-	//case 1:
-	//	if (!texture.loadFromFile("Sprites/enemy_crab_sprite.png"))
-	//	{
-	//		failed_to_load = true;
-	//	}
-	//	break;
-	//}
-	//if (failed_to_load)
-	//{
-	//	std::cout << "DEBUG: Failed to load texture for entity type " << entity_type << '\n';
-	//}
 	if (texture)
 	{
 		sprite = std::make_unique<sf::Sprite>(*texture);
